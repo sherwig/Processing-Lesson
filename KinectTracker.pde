@@ -18,17 +18,23 @@ class KinectTracker {
 
   // Depth data
   int[] depth;
-  
+
   // What we'll show the user
   PImage display;
-   
-  KinectTracker() {
-    // This is an awkard use of a global variable here
-    // But doing it this way for simplicity
-    kinect.initDepth();
-    kinect.enableMirror(true);
+  
+  //Kinect2 class
+  Kinect2 kinect2;
+  
+  KinectTracker(PApplet pa) {
+    
+    //enable Kinect2
+    kinect2 = new Kinect2(pa);
+    kinect2.initDepth();
+    kinect2.initDevice();
+    
     // Make a blank image
-    display = createImage(kinect.width, kinect.height, RGB);
+    display = createImage(kinect2.depthWidth, kinect2.depthHeight, RGB);
+    
     // Set up the vectors
     loc = new PVector(0, 0);
     lerpedLoc = new PVector(0, 0);
@@ -36,7 +42,7 @@ class KinectTracker {
 
   void track() {
     // Get the raw depth as array of integers
-    depth = kinect.getRawDepth();
+    depth = kinect2.getRawDepth();
 
     // Being overly cautious here
     if (depth == null) return;
@@ -45,15 +51,15 @@ class KinectTracker {
     float sumY = 0;
     float count = 0;
 
-    for (int x = 0; x < kinect.width; x++) {
-      for (int y = 0; y < kinect.height; y++) {
-        
-        int offset =  x + y*kinect.width;
+    for (int x = 0; x < kinect2.depthWidth; x++) {
+      for (int y = 0; y < kinect2.depthHeight; y++) {
+        // Mirroring the image
+        int offset = kinect2.depthWidth - x - 1 + y * kinect2.depthWidth;
         // Grabbing the raw depth
         int rawDepth = depth[offset];
 
         // Testing against threshold
-        if (rawDepth < threshold) {
+        if (rawDepth > 0 && rawDepth < threshold) {
           sumX += x;
           sumY += y;
           count++;
@@ -79,7 +85,7 @@ class KinectTracker {
   }
 
   void display() {
-    PImage img = kinect.getDepthImage();
+    PImage img = kinect2.getDepthImage();
 
     // Being overly cautious here
     if (depth == null || img == null) return;
@@ -87,14 +93,14 @@ class KinectTracker {
     // Going to rewrite the depth image to show which pixels are in threshold
     // A lot of this is redundant, but this is just for demonstration purposes
     display.loadPixels();
-    for (int x = 0; x < kinect.width; x++) {
-      for (int y = 0; y < kinect.height; y++) {
-
-        int offset = x + y * kinect.width;
+    for (int x = 0; x < kinect2.depthWidth; x++) {
+      for (int y = 0; y < kinect2.depthHeight; y++) {
+        // mirroring image
+        int offset = (kinect2.depthWidth - x - 1) + y * kinect2.depthWidth;
         // Raw depth
         int rawDepth = depth[offset];
-        int pix = x + y * display.width;
-        if (rawDepth < threshold) {
+        int pix = x + y*display.width;
+        if (rawDepth > 0 && rawDepth < threshold) {
           // A red color instead
           display.pixels[pix] = color(150, 50, 50);
         } else {
